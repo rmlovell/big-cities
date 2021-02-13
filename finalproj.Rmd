@@ -1,0 +1,223 @@
+---
+title: "Ranking Cities by Health, Education, and Income"
+author: "Dylan Martin, Robin Lovell"
+date: "May 3rd, 2020"
+output: html_notebook
+---
+
+	Our project sought to compare the quality of life in 26 major U.S. cities using data from the U.S. Centers for Disease Control and Prevention. The data set includes variables that pertain to demographics and indicators of health, income, and education level. 
+	
+	We intended to do this by producing interactive plots, making linear models of key predictors, and comparing cities based on their “Livability”, a variable we created representing relative levels of positive and negative predictors of quality of life. 
+  
+  Our hypothesis was that the “Livability” of Detroit, MI would be lowest because it is known for its weak economy, high levels of poverty, and high crime rates. Meanwhile, we predicted Boston, MA and Portland, OR would be relatively high on the list as they are known to be cities with thriving economies and rich local cultures.
+	
+	The main dataset we used was the U.S. Centers for Disease Control and Prevention’s Big Cities Health Inventory Data. The R language and RStudio were used for all data wrangling, analyses, and visualizations. We researched previous work done to summarize the health, finances, and education levels of Americans. The Social Science Research Council has a comprehensive interactive map of the U.S. depicting a range of statistics regarding human wellbeing by state. Their map informed our approach to analysis and visualisation. Inspired by this resource, we decided presenting data on life expectancy, income, and education level by various demographics was crucial to summarizing quality of life in big cities. 
+
+References
+
+R Core Team (2017). R: A language and environment for statistical computing. R Foundation for Statistical 
+  Computing,Vienna, Austria. URL https://www.R-project.org/.
+
+RStudio Team (2015). RStudio: Integrated Development for R. RStudio, Inc., Boston, MA URL http://www.rstudio.com/.
+
+Big Cities Health Data: 
+https://data.world/health/big-cities-health
+
+Measure of America Interactive Map:
+https://measureofamerica.org/maps/?state^hdi^all_all^HDI^hdi
+
+Measure of America Data Set:
+http://measureofamerica.org/download-agreement/
+
+  First, our process involved finding a mean of the values for each city and indicator. Each city has multiple years of data for each indicator so obtaining a mean across these years is important for further analysis. We then calculated the sum of mean values for a given indicator across all cities. The city’s mean for each indicator was then divided by the sum of means in the indicator, we’ll call this value the city’s relative value. Since we have a relative value for every city in each indicator we can calculate totals of the relative value for the good and bad indicator categories. This is done by summing the relative values for the good indicators and for the bad indicators. Then to get a final ranking of the cities we subtracted the sum of the good indicators from the sum of the bad indicators for each city. The result decides the final ranking of the city. Finally, we plotted Livability by City.
+  
+  After this, we made linear models to see if life expectancy and race and life expectancy and city had statistically significant associations. 
+  
+  Subsequently, we produced an interactive faceted barplot depicting life expectancy by city and race. Then, we made a series of static barplots showing median household income, all-cause mortality rate, and percent of adults who meet CDC recommended levels of physical activity by city in order to visualize the relative health and income levels of the cities. Finally, we produced three interesting barplots depicting firearms-related mortality rate, homicide rate, and suicide rate. It was surprising to find that Sacremento, CA has the highest suicide rate. It was unsurprising to find that Detroit, MI had both the highest homicide rate and the highest firearms-related mortality rate.
+  
+  In conclusion, we found that the city that has the lowest quality of health, education, and income was Detroit, Michigan and the city with the best of these qualities was San Jose, California. One of the largest challenges in this project was finding a way to correctly quantify quality of life in a city. To get a reasonable result we had to try out a few different iterations of the final method we came to and we feel that this method is the most accurate way to rank these cities based on the data we had. 
+  
+  Detroit, MI matched our hypothesis, while Boston, MA and Portland, OR differed from it. One reason Boston, MA and Portland, OR were lower on the list than hypothesized was because the data set incorporated a limited number of predictors that do not fully encompass quality of life. Also, we did not weigh the variables differently in our calculation of “Livability”, when in reality some factors are more important than others.
+
+
+
+
+Import data set into workspace; define vectors of variables representing variables unfit to be indicators of quality of life, and variables that are positive indicators of quality of life
+```{r, warning=FALSE, error=F, message=F}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+#setwd("C:/Users/robin/OneDrive/Documents")
+data <- read.csv("Big_Cities_Health_Data_Inventory.csv")
+
+
+unrelated = c("Percent Foreign Born", "Race/Ethnicity", "Opioid-Related Mortality Rate (Age-Adjusted; Per 100,000 people) *These data should not be compared across cities as they have different definitions", "Opioid-Related Mortality Rate (Age-Adjusted; Per 100,000 people) *These data should not be compared across cities as they have different definitions", "Opioid-Related Mortality Rate (Crude Rate; Per 100,000 people) *These data should not be compared across cities as they have different definitions", "Opioid-Related Mortality Rate (Age-Adjusted; Per 100,000 people) *These data should not be compared across cities as they have different definitions.", "Drug Abuse-Related Hospitalization Rate (Per 100,000 people) *Comparisons of these data are difficult as definitions can vary.", "HIV Diagnoses Rate (Per 100,000 people)", "AIDS Diagnoses Rate (Per 100,000 people)", "All-Cause Mortality Rate (Age-Adjusted; Per 100,000 people)", "Percent of Adults Who Are Obese", "Percent of Adults Who Binge Drank", "Percent of Adults Who Currently Smoke", "Percent of High School Students Who Binge Drank", "Percent of High School Students Who Currently Smoke", "Rate of Laboratory Confirmed Infections Caused by Shiga Toxin-Producing E-Coli (Per 100,000 people)", "Life Expectancy at Birth (Years)", "Percent of Adults Over Age 65 Who Received Pneumonia Vaccine", "Percent of Adults Who Meet CDC-Recommended Physical Activity Levels", "Rate of Laboratory Confirmed Infections Caused by Salmonella (Per 100,000 people)", "Percent of High School Students Who Are Obese", "Percent of High School Students Who Meet CDC-Recommended Physical Activity Levels", "Percent of Adults Who Received Seasonal Flu Shot", "Percent of Children Who Received Seasonal Flu Shot", "Life Expectancy at Birth (Years)", "Percent of Adults Over Age 65 Who Received Pneumonia Vaccine", "Percent of Adults Who Meet CDC-Recommended Physical Activity Levels", "Rate of Laboratory Confirmed Infections Caused by Salmonella (Per 100,000 people)", "Percent of High School Students Who Are Obese", "Percent of High School Students Who Meet CDC-Recommended Physical Activity Levels", "Percent of Adults Who Received Seasonal Flu Shot", "Percent of Children Who Received Seasonal Flu Shot", "Life Expectancy at Birth (Years)", "Percent of Adults Over Age 65 Who Received Pneumonia Vaccine", "Percent of Adults Who Meet CDC-Recommended Physical Activity Levels", "Rate of Laboratory Confirmed Infections Caused by Salmonella (Per 100,000 people)", "Percent of High School Students Who Are Obese", "Percent of High School Students Who Meet CDC-Recommended Physical Activity Levels", "Percent of Adults Who Received Seasonal Flu Shot", "Percent of Children Who Received Seasonal Flu Shot")
+
+good_indicators = c("Life Expectancy at Birth (Years)", "Median Household Income (Dollars)", "Percent 18+ High School Graduates", "Percent of Adults Over Age 65 Who Received Pneumonia Vaccine", "Percent of Adults Who Meet CDC-Recommended Physical Activity Levels", "Percent of High School Students Who Meet CDC-Recommended Physical Activity Levels", "Percent of Children Who Received Seasonal Flu Shot", "Percent of Adults Who Received Seasonal Flu Shot")
+
+places <- unique(data$Place)
+indicators <- unique(data$Indicator)
+
+```
+
+
+Create a variable "Mean_by_city_and_ind" equal to the mean of values for a given place and indicator
+```{r, warning=FALSE, error=F, message=F}
+data <- data %>% 
+  group_by(Indicator, Place) %>% 
+  mutate(Mean_by_city_and_ind=mean(na.exclude(Value)))
+data <- ungroup(data)
+```
+
+Create variable "Sum" equal to the sum of mean values for a given indicator across all places
+```{r, warning=FALSE, error=F, message=F}
+data <- data %>% 
+  group_by(Indicator) %>% 
+  mutate(Sum=sum(unique(Mean_by_city_and_ind)))
+data <- ungroup(data)
+```
+
+Create variable "Relative" equal to the quotient of the mean value for a given indicator and place divided by the sum of all mean values for that indicator across all places
+```{r, warning=FALSE, error=F, message=F}
+data <- data %>% 
+  mutate(Relative=Mean_by_city_and_ind/Sum)
+```
+
+Create a variable "Good" equal to the sum of the "Relative" values corresponding to good indicators for a given place
+```{r, warning=FALSE, error=F, message=F}
+data <- data %>% 
+  group_by(Place) %>% 
+  mutate(Good=sum(unique(Relative[Indicator %in% good_indicators])))
+
+data <- ungroup(data)
+```
+
+Create a variable "Bad" equal to the sum of the "Relative" values corresponding to a bad indicators for a given place
+```{r, warning=FALSE, error=F, message=F}
+data <- data %>% 
+  group_by(Place) %>% 
+  mutate(Bad=sum(unique(Relative[!Indicator %in% good_indicators & !Indicator %in% unrelated])))
+data<-ungroup(data)
+```
+
+Create a variable "Livability" equal to Good minus Bad values
+```{r, warning=FALSE, error=F, message=F}
+data <- data %>%
+  mutate(Livability = Good-Bad)
+```
+Center Livability around 0
+```{r, warning=F, error=F, message=F}
+data$Livability <- scale(data$Livability)
+
+```
+
+Visualize livability by city
+```{r, warning=FALSE, error=F, message=F}
+data1 <- data %>%
+  group_by(Place, Livability) %>% 
+  summarize()
+data1 <- ungroup(data1)
+data1 <- data1[order(data1$Livability),]
+ggplot(data1)+aes(reorder(Place, Livability), Livability)+geom_point(stat="identity")+theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))+labs(x="City")
+```
+
+Create a variable representing mean life expectancy by race and city
+```{r, warning=F, error=F, message=F}
+data2 <- data[data$Indicator == "Life Expectancy at Birth (Years)" & data$Race..Ethnicity != "All",]
+data2 <- data2 %>% 
+  group_by(Race..Ethnicity, Place) %>% 
+  mutate(Mean_Life_Exp_by_Race_and_Place=mean(na.exclude(Value))) 
+data2 <- ungroup(data2)
+
+life_exp.df<- summarise(group_by(data2, Race..Ethnicity, Place, Mean_Life_Exp_by_Race_and_Place))
+life_exp.df.ordered <- life_exp.df[order(life_exp.df$Mean_Life_Exp_by_Race_and_Place),]
+
+```
+
+Linear model of life expectancy and city
+```{r, warning=F, error=F, message=F}
+summary(lm(Mean_Life_Exp_by_Race_and_Place ~ Place, life_exp.df))
+```
+>
+The results show that life expectancy is not correlated with city in a statistically significant way.
+
+Linear model for mean life expectancy and race
+
+```{r, warning=F, error=F, message=F}
+summary(lm(Mean_Life_Exp_by_Race_and_Place ~ Race..Ethnicity, life_exp.df))
+```
+
+>
+The linear model shows that Asian and Hispanic races or ethnicities are have a statistically significant association with life expectancy.
+The resulting model is:
+life expectancy = 76.4 + 10.071 x Asian + 8.259 x Hispanic
+
+
+Visualize mean life expectancy by race and city
+```{r, warning=F, error=F, message=F}
+
+gg  <- ggplot(life_exp.df.ordered) + aes(x=reorder(Race..Ethnicity, Mean_Life_Exp_by_Race_and_Place) ,y=Mean_Life_Exp_by_Race_and_Place, fill = Race..Ethnicity) +
+  geom_bar(position = "dodge", stat="identity") + facet_wrap(~Place) + labs(title = "Life Expectancy by Race and City") + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+
+ggp_build <- plotly_build(gg)
+ggp_build$layout$height = 1000
+ggp_build$layout$width = 1000
+
+ggp_build
+```
+>
+Above is an interactive plot showing the mean life expectancy for cities by race.
+
+
+Visualize median household income by city
+```{r, warning=F, error=F, message=F}
+income <- subset(data, Indicator == "Median Household Income (Dollars)", select = colnames(data))
+income_val <- aggregate(Value ~ Place, income, mean)
+ggplot(income_val, aes(x=reorder(Place, Value), y=Value)) + geom_col() + coord_flip() + labs(title = "Median Household Income (Dollars)", x="City")
+```
+
+>
+San Jose, CA has the highest Median Household Income, while Detroit, MI has the lowest.
+
+Visualize Mortality Rate by city and race
+```{r, warning=F, error=F, message=F}
+all_cause <- subset(data, Indicator == "All-Cause Mortality Rate (Age-Adjusted; Per 100,000 people)", select = colnames(data))
+all_cause2 <- aggregate( Value ~ Place, all_cause, mean )
+ggplot(all_cause2, aes(x=reorder(Place, Value), y=Value)) + geom_col() + coord_flip() + labs(title = "All-Cause Mortality Rate (Age-Adjusted; Per 100,000 people)", x="City")
+```
+>
+Cleveland, OH has the lowest All-Cause Mortality Rate, while Phoenix, AZ has the lowest.
+
+Visualize percent of adults who meet Physical Activity Requirements
+```{r, warning=F, error=F, message=F}
+pa <- subset(data, Indicator == "Percent of Adults Who Meet CDC-Recommended Physical Activity Levels", select = colnames(data))
+pa_data <- aggregate( Value ~ Place, pa, mean)
+ggplot(pa_data, aes(x=reorder(Place, Value), y=Value)) + geom_col() + coord_flip() + labs(title = "Percent of Adults Who Meet CDC-Recommended Physical Activity Levels", x="City")
+```
+>
+Denver, CO has the highest percentage of adults who meet CDC-recommend physical activity levels, while Detroit, MI has the lowest.
+
+Interesting plots
+```{r, warning=F, error=F, message=F}
+fa <- subset(data, Indicator == "Firearm Related Mortality Rate (Age-Adjusted; Per 100,000 people)", select = colnames(data))
+fa_data <- aggregate( Value ~ Place, fa, mean)
+ggplot(fa_data, aes(x=reorder(Place, Value), y=Value)) + geom_col() + coord_flip() + labs(title = "Firearm Related Mortality Rate (Age-Adjusted; Per 100,000 people)")
+```
+>
+Detroit, MI has the highest firearm-related mortality rate, while New York, NY has the lowest.
+
+```{r, warning=F, error=F, message=F}
+hr <- subset(data, Indicator == "Homicide Rate (Age-Adjusted; Per 100,000 people)", select = colnames(data))
+hr_data <- aggregate( Value ~ Place, hr, mean)
+ggplot(hr_data, aes(x=reorder(Place, Value), y=Value)) + geom_col() + coord_flip() + labs(title = "Homicide Rate (Age-Adjusted; Per 100,000 people)", x="City")
+```
+>
+Detroit, MI has the highest homicide rate, while San Diego, CA has the lowest
+
+```{r, warning=F, error=F, message=F}
+sr <- subset(data, Indicator == "Suicide Rate  (Age-Adjusted; Per 100,000 people)", select = colnames(data))
+sr_data <- aggregate( Value ~ Place, sr, mean)
+ggplot(sr_data, aes(x=reorder(Place, Value), y=Value)) + geom_col() + coord_flip() + labs(title = "Suicide Rate  (Age-Adjusted; Per 100,000 people)")
+```
+>
+Sacramento, CA has the highest suicide rate, while Los Angeles, CA has the lowest.
